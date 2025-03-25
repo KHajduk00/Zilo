@@ -1,0 +1,6 @@
+#Directories:
+zig-out/
+.zig-cache/
+
+#zon
+build.zig.zon
