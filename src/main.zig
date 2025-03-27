@@ -37,6 +37,10 @@ fn enableRawMode() !void {
     raw.iflag.ICRNL = false;
     // Turn off all output processing
     raw.oflag.OPOST = false;
+    // BRKINT, INPCK, ISTRIP, Miscellaneous flags, TODO: remember to check the CS8 flag
+    raw.iflag.BRKINT = false;
+    raw.iflag.INPCK = false;
+    raw.iflag.ISTRIP = false;
 
     // Apply our modified settings to the terminal
     try std.posix.tcsetattr(stdin, .FLUSH, raw);
