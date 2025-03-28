@@ -37,10 +37,17 @@ fn enableRawMode() !void {
     raw.iflag.ICRNL = false;
     // Turn off all output processing
     raw.oflag.OPOST = false;
-    // BRKINT, INPCK, ISTRIP, Miscellaneous flags, TODO: remember to check the CS8 flag
+    // BRKINT, INPCK, ISTRIP, Miscellaneous flags
     raw.iflag.BRKINT = false;
     raw.iflag.INPCK = false;
     raw.iflag.ISTRIP = false;
+    // Set 8 bit characters
+    raw.cflag.CSIZE = .CS8;
+    // Set read timeouts
+    const VMIN = 5;
+    const VTIME = 6;
+    raw.cc[VMIN] = 0;
+    raw.cc[VTIME] = 1;
 
     // Apply our modified settings to the terminal
     try std.posix.tcsetattr(stdin, .FLUSH, raw);
@@ -63,8 +70,8 @@ pub fn main() anyerror!void {
     while (true) {
         // Read one byte from stdin into our buffer
         const n = try stdin.read(buf[0..]);
-        // Exit if we didn't read exactly one byte or if 'q' was pressed
-        if (n != 1 or buf[0] == 'q') break;
+        // Exit if we didn't read exactly one byte
+        if (n != 1) break;
 
         // Check if the character is a control character (like newline, escape, etc)
         if (std.ascii.isControl(buf[0])) {
@@ -74,5 +81,8 @@ pub fn main() anyerror!void {
             // Print regular characters as both their numeric value and the character itself
             try stdout.print("{d} ('{c}')\r\n", .{ buf[0], buf[0] });
         }
+
+        // Exit if 'q' was pressed
+        if (buf[0] == 'q') break;
     }
 }
