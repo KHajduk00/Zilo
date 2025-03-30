@@ -8,7 +8,10 @@ var orig_termios: std.posix.termios = undefined;
 // Function to restore the original terminal settings
 fn disableRawMode() void {
     // Restore original terminal settings. We use 'catch {}' to ignore any errors
-    std.posix.tcsetattr(std.io.getStdIn().handle, .FLUSH, orig_termios) catch {};
+    std.posix.tcsetattr(std.io.getStdIn().handle, .FLUSH, orig_termios) catch {
+        std.debug.print("Error: Failed to restore terminal settings\n", .{});
+        std.process.exit(1);
+    };
 }
 
 // Function to enable raw mode in the terminal, returns an error union
@@ -18,7 +21,10 @@ fn enableRawMode() !void {
 
     // Get the current terminal settings and store them in orig_termios
     // 'try' is used for error handling - it returns the error if one occurs
-    orig_termios = try std.posix.tcgetattr(stdin);
+    orig_termios = std.posix.tcgetattr(stdin) catch {
+        std.debug.print("Error: Could not get terminal attributes\n", .{});
+        return error.TerminalError;
+    };
 
     // Create a new termios struct that we can modify
     var raw = orig_termios;
@@ -50,13 +56,19 @@ fn enableRawMode() !void {
     raw.cc[VTIME] = 1;
 
     // Apply our modified settings to the terminal
-    try std.posix.tcsetattr(stdin, .FLUSH, raw);
+    std.posix.tcsetattr(stdin, .FLUSH, raw) catch {
+        std.debug.print("Error: Could not set terminal attributes\n", .{});
+        return error.TerminalError;
+    };
 }
 
 // Main function that can return any error
 pub fn main() anyerror!void {
     // Enable raw mode and handle potential errors
-    try enableRawMode();
+    enableRawMode() catch {
+        std.debug.print("Error: Failed to enter raw mode\n", .{});
+        std.process.exit(1);
+    };
     // Ensure we disable raw mode when the program exits
     defer disableRawMode();
 
@@ -69,17 +81,25 @@ pub fn main() anyerror!void {
     // Main program loop
     while (true) {
         // Read one byte from stdin into our buffer
-        const n = try stdin.read(buf[0..]);
+        const n = stdin.read(buf[0..]) catch {
+            std.debug.print("Error: Failed to read from stdin\n", .{});
+            std.process.exit(1);
+        };
+
         // Exit if we didn't read exactly one byte
         if (n != 1) break;
 
         // Check if the character is a control character (like newline, escape, etc)
         if (std.ascii.isControl(buf[0])) {
-            // Print control characters as their numeric value
-            try stdout.print("{d}\r\n", .{buf[0]});
+            stdout.print("{d}\r\n", .{buf[0]}) catch {
+                std.debug.print("Error: Failed to write to stdout\n", .{});
+                std.process.exit(1);
+            };
         } else {
-            // Print regular characters as both their numeric value and the character itself
-            try stdout.print("{d} ('{c}')\r\n", .{ buf[0], buf[0] });
+            stdout.print("{d} ('{c}')\r\n", .{ buf[0], buf[0] }) catch {
+                std.debug.print("Error: Failed to write to stdout\n", .{});
+                std.process.exit(1);
+            };
         }
 
         // Exit if 'q' was pressed
