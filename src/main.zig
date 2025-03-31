@@ -1,6 +1,12 @@
 //*** includes ***/
 const std = @import("std");
 
+//*** defines ***//
+// Function to handle Ctrl key combinations
+fn CTRL_KEY(comptime k: u8) u8 {
+    return k & 0x1f;
+}
+
 //*** data ***/
 var orig_termios: std.posix.termios = undefined;
 
@@ -84,6 +90,6 @@ pub fn main() anyerror!void {
             };
         }
 
-        if (buf[0] == 'q') break;
+        if (buf[0] == CTRL_KEY('q')) break;
     }
 }
