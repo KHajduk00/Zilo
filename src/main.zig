@@ -10,10 +10,15 @@ fn CTRL_KEY(comptime k: u8) u8 {
 //*** data ***/
 var orig_termios: std.posix.termios = undefined;
 
+const KeyAction = enum {
+    Quit,
+    NoOp,
+};
+
 //*** terminal ***/
 // Function to restore the original terminal settings
 // Will print error and exit if restoration fails
-fn disableRawMode() void {
+export fn disableRawMode() void {
     std.posix.tcsetattr(std.io.getStdIn().handle, .FLUSH, orig_termios) catch {
         std.debug.print("Error: Failed to restore terminal settings\n", .{});
         std.process.exit(1);
@@ -57,39 +62,37 @@ fn enableRawMode() !void {
     };
 }
 
-//*** init ***/
-// Main function that handles program execution and error handling
-pub fn main() anyerror!void {
-    enableRawMode() catch {
-        std.debug.print("Error: Failed to enter raw mode\n", .{});
-        std.process.exit(1);
-    };
-    defer disableRawMode();
-
-    const stdin = std.io.getStdIn().reader();
-    const stdout = std.io.getStdOut().writer();
+fn editorReadKey() !u8 {
     var buf: [1]u8 = undefined;
+    const stdin = std.io.getStdIn().reader();
 
     while (true) {
-        const n = stdin.read(buf[0..]) catch {
-            std.debug.print("Error: Failed to read from stdin\n", .{});
-            std.process.exit(1);
-        };
+        const n = try stdin.read(buf[0..]);
+        if (n == 1) break;
+    }
 
-        if (n != 1) break;
+    return buf[0];
+}
 
-        if (std.ascii.isControl(buf[0])) {
-            stdout.print("{d}\r\n", .{buf[0]}) catch {
-                std.debug.print("Error: Failed to write to stdout\n", .{});
-                std.process.exit(1);
-            };
-        } else {
-            stdout.print("{d} ('{c}')\r\n", .{ buf[0], buf[0] }) catch {
-                std.debug.print("Error: Failed to write to stdout\n", .{});
-                std.process.exit(1);
-            };
+//*** input ***/
+fn editorProcessKeypress() !KeyAction {
+    const c = try editorReadKey();
+
+    return switch (c) {
+        CTRL_KEY('q') => .Quit, // This quits
+        else => .NoOp, // All other keys do nothing (.NoOp = no operation)
+    };
+}
+
+//*** init ***/
+pub fn main() anyerror!void {
+    try enableRawMode();
+    defer disableRawMode();
+
+    while (true) {
+        switch (try editorProcessKeypress()) {
+            .Quit => break,
+            else => {},
         }
-
-        if (buf[0] == CTRL_KEY('q')) break;
     }
 }
