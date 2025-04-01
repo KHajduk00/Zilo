@@ -77,6 +77,7 @@ fn editorReadKey() !u8 {
 //*** output ***/
 fn editorRefreshScreen() !void {
     try std.io.getStdOut().writer().writeAll("\x1b[2J");
+    try std.io.getStdOut().writer().writeAll("\x1b[H");
 }
 
 //*** input ***/
