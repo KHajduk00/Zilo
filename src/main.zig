@@ -74,6 +74,11 @@ fn editorReadKey() !u8 {
     return buf[0];
 }
 
+//*** output ***/
+fn editorRefreshScreen() !void {
+    try std.io.getStdOut().writer().writeAll("\x1b[2J");
+}
+
 //*** input ***/
 fn editorProcessKeypress() !KeyAction {
     const c = try editorReadKey();
@@ -90,6 +95,7 @@ pub fn main() anyerror!void {
     defer disableRawMode();
 
     while (true) {
+        try editorRefreshScreen();
         switch (try editorProcessKeypress()) {
             .Quit => break,
             else => {},
