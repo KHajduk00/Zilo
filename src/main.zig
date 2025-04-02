@@ -25,6 +25,14 @@ export fn disableRawMode() void {
     };
 }
 
+fn die(msg: []const u8) noreturn {
+    std.io.getStdOut().writer().writeAll("\x1b[2J") catch {};
+    std.io.getStdOut().writer().writeAll("\x1b[H") catch {};
+    std.debug.print("Error: {s}\n", .{msg});
+
+    std.process.exit(1);
+}
+
 // Function to enable raw mode in the terminal
 // Returns an error if terminal settings cannot be configured
 fn enableRawMode() !void {
