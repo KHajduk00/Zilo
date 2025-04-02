@@ -85,7 +85,11 @@ fn editorProcessKeypress() !KeyAction {
     const c = try editorReadKey();
 
     return switch (c) {
-        CTRL_KEY('q') => .Quit, // This quits
+        CTRL_KEY('q') => {
+            try std.io.getStdOut().writer().writeAll("\x1b[2J");
+            try std.io.getStdOut().writer().writeAll("\x1b[H");
+            return .Quit;
+        }, // Now we clear the screen on quitting
         else => .NoOp, // All other keys do nothing (.NoOp = no operation)
     };
 }
