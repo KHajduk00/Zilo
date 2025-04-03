@@ -8,7 +8,13 @@ fn CTRL_KEY(comptime k: u8) u8 {
 }
 
 //*** data ***/
-var orig_termios: std.posix.termios = undefined;
+const EditorConfig = struct {
+    orig_termios: std.posix.termios,
+};
+
+var E = EditorConfig{
+    .orig_termios = undefined,
+};
 
 const KeyAction = enum {
     Quit,
@@ -19,7 +25,7 @@ const KeyAction = enum {
 // Function to restore the original terminal settings
 // Will print error and exit if restoration fails
 export fn disableRawMode() void {
-    std.posix.tcsetattr(std.io.getStdIn().handle, .FLUSH, orig_termios) catch {
+    std.posix.tcsetattr(std.io.getStdIn().handle, .FLUSH, E.orig_termios) catch {
         std.debug.print("Error: Failed to restore terminal settings\n", .{});
         std.process.exit(1);
     };
@@ -38,12 +44,12 @@ fn die(msg: []const u8) noreturn {
 fn enableRawMode() !void {
     const stdin = std.io.getStdIn().handle;
 
-    orig_termios = std.posix.tcgetattr(stdin) catch {
+    E.orig_termios = std.posix.tcgetattr(stdin) catch {
         std.debug.print("Error: Could not get terminal attributes\n", .{});
         return error.TerminalError;
     };
 
-    var raw = orig_termios;
+    var raw = E.orig_termios;
 
     // Terminal mode flags:
     raw.lflag.ECHO = false; // Don't echo input characters
