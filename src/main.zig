@@ -86,6 +86,15 @@ fn editorReadKey() !u8 {
 fn editorRefreshScreen() !void {
     try std.io.getStdOut().writer().writeAll("\x1b[2J");
     try std.io.getStdOut().writer().writeAll("\x1b[H");
+    try editorDrawRows();
+    try std.io.getStdOut().writer().writeAll("\x1b[H");
+}
+
+fn editorDrawRows() !void {
+    var y: usize = 0;
+    while (y < 24) : (y += 1) {
+        try std.io.getStdOut().writer().writeAll("~\r\n");
+    }
 }
 
 //*** input ***/
