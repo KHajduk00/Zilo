@@ -1,5 +1,9 @@
 //*** includes ***/
 const std = @import("std");
+const clib = @cImport({
+    @cInclude("sys/ioctl.h");
+    @cInclude("unistd.h");
+});
 
 //*** defines ***//
 // Function to handle Ctrl key combinations
@@ -86,6 +90,18 @@ fn editorReadKey() !u8 {
     }
 
     return buf[0];
+}
+
+fn getWindowSize(rows: *c_int, cols: *c_int) c_int {
+    var ws: clib.winsize = undefined;
+
+    if (clib.ioctl(clib.STDOUT_FILENO, clib.TIOCGWINSZ, &ws) == -1 or ws.ws_col == 0) {
+        return -1;
+    } else {
+        cols.* = ws.ws_col;
+        rows.* = ws.ws_row;
+        return 0;
+    }
 }
 
 //*** output ***/
