@@ -13,10 +13,14 @@ fn CTRL_KEY(comptime k: u8) u8 {
 
 //*** data ***/
 const EditorConfig = struct {
+    screenrows: u16,
+    screencols: u16,
     orig_termios: std.posix.termios,
 };
 
 var E = EditorConfig{
+    .screenrows = undefined,
+    .screencols = undefined,
     .orig_termios = undefined,
 };
 
@@ -92,7 +96,7 @@ fn editorReadKey() !u8 {
     return buf[0];
 }
 
-fn getWindowSize(rows: *c_int, cols: *c_int) c_int {
+fn getWindowSize(rows: *u16, cols: *u16) c_int {
     var ws: clib.winsize = undefined;
 
     if (clib.ioctl(clib.STDOUT_FILENO, clib.TIOCGWINSZ, &ws) == -1 or ws.ws_col == 0) {
@@ -134,9 +138,16 @@ fn editorProcessKeypress() !KeyAction {
 }
 
 //*** init ***/
+fn initEditor() void {
+    if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
+        die("getWindowSize");
+    }
+}
+
 pub fn main() anyerror!void {
     try enableRawMode();
     defer disableRawMode();
+    initEditor();
 
     while (true) {
         try editorRefreshScreen();
