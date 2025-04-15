@@ -119,7 +119,8 @@ fn editorRefreshScreen() !void {
 fn editorDrawRows() !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
-        try std.io.getStdOut().writer().writeAll("~\r\n");
+        try std.io.getStdOut().writer().writeAll("~");
+        if (y < E.screenrows - 1) try std.io.getStdOut().writer().writeAll("\r\n");
     }
 }
 
