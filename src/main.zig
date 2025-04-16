@@ -4,6 +4,8 @@ const clib = @cImport({
     @cInclude("sys/ioctl.h");
     @cInclude("unistd.h");
 });
+const heap = @import("std").heap;
+const mem = @import("std").mem;
 
 //*** defines ***//
 // Function to handle Ctrl key combinations
@@ -109,18 +111,22 @@ fn getWindowSize(rows: *u16, cols: *u16) c_int {
 }
 
 //*** output ***/
-fn editorRefreshScreen() !void {
-    try std.io.getStdOut().writer().writeAll("\x1b[2J");
-    try std.io.getStdOut().writer().writeAll("\x1b[H");
-    try editorDrawRows();
-    try std.io.getStdOut().writer().writeAll("\x1b[H");
+fn editorRefreshScreen(allocator: mem.Allocator) !void {
+    var buf = std.ArrayList(u8).init(allocator);
+    defer buf.deinit();
+    var writer = buf.writer();
+    try writer.writeAll("\x1b[2J");
+    try writer.writeAll("\x1b[H");
+    try editorDrawRows(writer);
+    try writer.writeAll("\x1b[H");
+    try std.io.getStdOut().writer().writeAll(buf.items);
 }
 
-fn editorDrawRows() !void {
+fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
-        try std.io.getStdOut().writer().writeAll("~");
-        if (y < E.screenrows - 1) try std.io.getStdOut().writer().writeAll("\r\n");
+        try writer.writeAll("~");
+        if (y < E.screenrows - 1) try writer.writeAll("\r\n");
     }
 }
 
@@ -146,12 +152,17 @@ fn initEditor() void {
 }
 
 pub fn main() anyerror!void {
+    // Set up an arena allocator
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
     try enableRawMode();
     defer disableRawMode();
     initEditor();
 
     while (true) {
-        try editorRefreshScreen();
+        try editorRefreshScreen(allocator);
         switch (try editorProcessKeypress()) {
             .Quit => break,
             else => {},
