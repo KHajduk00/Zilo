@@ -113,12 +113,14 @@ fn getWindowSize(rows: *u16, cols: *u16) c_int {
 //*** output ***/
 fn editorRefreshScreen(allocator: mem.Allocator) !void {
     var buf = std.ArrayList(u8).init(allocator);
-    defer buf.deinit();
+    defer buf.deinit(); 
     var writer = buf.writer();
+    try writer.writeAll("\x1b[?25l");
     try writer.writeAll("\x1b[2J");
     try writer.writeAll("\x1b[H");
     try editorDrawRows(writer);
     try writer.writeAll("\x1b[H");
+    try writer.writeAll("\x1b[?25h");
     try std.io.getStdOut().writer().writeAll(buf.items);
 }
 
