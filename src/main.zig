@@ -116,7 +116,6 @@ fn editorRefreshScreen(allocator: mem.Allocator) !void {
     defer buf.deinit(); 
     var writer = buf.writer();
     try writer.writeAll("\x1b[?25l");
-    try writer.writeAll("\x1b[2J");
     try writer.writeAll("\x1b[H");
     try editorDrawRows(writer);
     try writer.writeAll("\x1b[H");
@@ -128,6 +127,7 @@ fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
         try writer.writeAll("~");
+        try writer.writeAll("\x1b[K");
         if (y < E.screenrows - 1) try writer.writeAll("\r\n");
     }
 }
