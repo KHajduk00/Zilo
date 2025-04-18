@@ -14,6 +14,9 @@ fn CTRL_KEY(comptime k: u8) u8 {
 }
 
 //*** data ***/
+
+const zilo_version = "0.0.1";
+
 const EditorConfig = struct {
     screenrows: u16,
     screencols: u16,
@@ -126,7 +129,11 @@ fn editorRefreshScreen(allocator: mem.Allocator) !void {
 fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
-        try writer.writeAll("~");
+        if (y == E.screenrows / 3) {
+            try writer.print("Zilo editor -- version {s}", .{zilo_version});
+        } else {
+            try writer.writeAll("~");
+        }
         try writer.writeAll("\x1b[K");
         if (y < E.screenrows - 1) try writer.writeAll("\r\n");
     }
