@@ -134,14 +134,24 @@ fn editorDrawRows(writer: anytype) !void {
             var welcome: [80]u8 = undefined;
             const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
 
-            // Get the length and truncate if needed
+            // Handle message that might be too wide
             const display_len = @min(welcome_msg.len, E.screencols);
+            const padding = (E.screencols - display_len) / 2;
+
+            // Add left padding with space
+            var i: usize = 0;
+            while (i < padding) : (i += 1) {
+                try writer.writeAll(" ");
+            }
+
+            // Print the message
             try writer.writeAll(welcome_msg[0..display_len]);
         } else {
+            // For other lines, just print a single '~' at the start
             try writer.writeAll("~");
         }
 
-        // Clear line and add newline if needed
+        // Clear to end of line and add newline (except last line)
         try writer.writeAll("\x1b[K");
         if (y < E.screenrows - 1) {
             try writer.writeAll("\r\n");
