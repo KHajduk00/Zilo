@@ -131,7 +131,6 @@ fn editorRefreshScreen(allocator: mem.Allocator) !void {
     try editorDrawRows(writer);
     try writer.print("\x1b[{d};{d}H", .{ E.cy + 1, E.cx + 1 });
 
-    try writer.writeAll("\x1b[H");
     try writer.writeAll("\x1b[?25h");
     try std.io.getStdOut().writer().writeAll(buf.items);
 }
@@ -170,6 +169,16 @@ fn editorDrawRows(writer: anytype) !void {
 }
 
 //*** input ***/
+fn editorMoveCursor(key: u8) void {
+    switch (key) {
+        'a' => E.cx -= 1,
+        'd' => E.cx += 1,
+        'w' => E.cy -= 1,
+        's' => E.cy += 1,
+        else => {},
+    }
+}
+
 fn editorProcessKeypress() !KeyAction {
     const c = try editorReadKey();
 
@@ -179,6 +188,12 @@ fn editorProcessKeypress() !KeyAction {
             try std.io.getStdOut().writer().writeAll("\x1b[H");
             return .Quit;
         }, // Now we clear the screen on quitting
+
+        'w', 's', 'a', 'd' => {
+            editorMoveCursor(c);
+            return .NoOp;
+        },
+
         else => .NoOp, // All other keys do nothing (.NoOp = no operation)
     };
 }
