@@ -116,7 +116,7 @@ fn getWindowSize(rows: *u16, cols: *u16) c_int {
 //*** output ***/
 fn editorRefreshScreen(allocator: mem.Allocator) !void {
     var buf = std.ArrayList(u8).init(allocator);
-    defer buf.deinit(); 
+    defer buf.deinit();
     var writer = buf.writer();
     try writer.writeAll("\x1b[?25l");
     try writer.writeAll("\x1b[H");
@@ -130,12 +130,22 @@ fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
         if (y == E.screenrows / 3) {
-            try writer.print("Zilo editor -- version {s}", .{zilo_version});
+            // Create welcome message
+            var welcome: [80]u8 = undefined;
+            const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
+
+            // Get the length and truncate if needed
+            const display_len = @min(welcome_msg.len, E.screencols);
+            try writer.writeAll(welcome_msg[0..display_len]);
         } else {
             try writer.writeAll("~");
         }
+
+        // Clear line and add newline if needed
         try writer.writeAll("\x1b[K");
-        if (y < E.screenrows - 1) try writer.writeAll("\r\n");
+        if (y < E.screenrows - 1) {
+            try writer.writeAll("\r\n");
+        }
     }
 }
 
