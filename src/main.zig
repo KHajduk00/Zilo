@@ -18,12 +18,18 @@ fn CTRL_KEY(comptime k: u8) u8 {
 const zilo_version = "0.0.1";
 
 const EditorConfig = struct {
+    cx: c_int,
+    cy: c_int,
+
     screenrows: u16,
     screencols: u16,
     orig_termios: std.posix.termios,
 };
 
 var E = EditorConfig{
+    .cx = undefined,
+    .cy = undefined,
+
     .screenrows = undefined,
     .screencols = undefined,
     .orig_termios = undefined,
@@ -175,6 +181,9 @@ fn editorProcessKeypress() !KeyAction {
 
 //*** init ***/
 fn initEditor() void {
+    E.cx = 0;
+    E.cy = 0;
+
     if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
         die("getWindowSize");
     }
