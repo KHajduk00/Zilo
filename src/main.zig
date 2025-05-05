@@ -13,6 +13,8 @@ fn CTRL_KEY(comptime k: u8) u8 {
     return k & 0x1f;
 }
 
+const editorKey = enum(u8) { ARROW_LEFT = 'a', ARROW_RIGHT = 'd', ARROW_UP = 'w', ARROW_DOWN = 's' };
+
 //*** data ***/
 
 const zilo_version = "0.0.1";
@@ -116,10 +118,10 @@ fn editorReadKey() !u8 {
 
         if (seq[0] == '[') {
             return switch (seq[1]) {
-                'A' => 'w',
-                'B' => 's',
-                'C' => 'd',
-                'D' => 'a',
+                'A' => @intFromEnum(editorKey.ARROW_UP),
+                'B' => @intFromEnum(editorKey.ARROW_DOWN),
+                'C' => @intFromEnum(editorKey.ARROW_RIGHT),
+                'D' => @intFromEnum(editorKey.ARROW_LEFT),
                 else => '\x1b',
             };
         }
@@ -193,10 +195,10 @@ fn editorDrawRows(writer: anytype) !void {
 //*** input ***/
 fn editorMoveCursor(key: u8) void {
     switch (key) {
-        'a' => E.cx -= 1,
-        'd' => E.cx += 1,
-        'w' => E.cy -= 1,
-        's' => E.cy += 1,
+        @intFromEnum(editorKey.ARROW_LEFT) => E.cx -= 1,
+        @intFromEnum(editorKey.ARROW_RIGHT) => E.cx += 1,
+        @intFromEnum(editorKey.ARROW_UP) => E.cy -= 1,
+        @intFromEnum(editorKey.ARROW_DOWN) => E.cy += 1,
         else => {},
     }
 }
@@ -211,7 +213,7 @@ fn editorProcessKeypress() !KeyAction {
             return .Quit;
         }, // Now we clear the screen on quitting
 
-        'w', 's', 'a', 'd' => {
+        @intFromEnum(editorKey.ARROW_UP), @intFromEnum(editorKey.ARROW_DOWN), @intFromEnum(editorKey.ARROW_LEFT), @intFromEnum(editorKey.ARROW_RIGHT) => {
             editorMoveCursor(c);
             return .NoOp;
         },
