@@ -195,10 +195,18 @@ fn editorDrawRows(writer: anytype) !void {
 //*** input ***/
 fn editorMoveCursor(key: u8) void {
     switch (key) {
-        @intFromEnum(editorKey.ARROW_LEFT) => E.cx -= 1,
-        @intFromEnum(editorKey.ARROW_RIGHT) => E.cx += 1,
-        @intFromEnum(editorKey.ARROW_UP) => E.cy -= 1,
-        @intFromEnum(editorKey.ARROW_DOWN) => E.cy += 1,
+        @intFromEnum(editorKey.ARROW_LEFT) => if (E.cx != 0) {
+            E.cx -= 1;
+        },
+        @intFromEnum(editorKey.ARROW_RIGHT) => if (E.cx != E.screencols - 1) {
+            E.cx += 1;
+        },
+        @intFromEnum(editorKey.ARROW_UP) => if (E.cy != 0) {
+            E.cy -= 1;
+        },
+        @intFromEnum(editorKey.ARROW_DOWN) => if (E.cy != E.screenrows - 1) {
+            E.cy += 1;
+        },
         else => {},
     }
 }
