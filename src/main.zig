@@ -104,6 +104,28 @@ fn editorReadKey() !u8 {
         if (n == 1) break;
     }
 
+    // Read escape sequences
+    if (buf[0] == '\x1b') {
+        var seq: [3]u8 = undefined;
+
+        // Read first two characters of sequence
+        const seq1 = try stdin.read(seq[0..1]);
+        const seq2 = try stdin.read(seq[1..2]);
+
+        if (seq1 != 1 or seq2 != 1) return '\x1b';
+
+        if (seq[0] == '[') {
+            return switch (seq[1]) {
+                'A' => 'w',
+                'B' => 's',
+                'C' => 'd',
+                'D' => 'a',
+                else => '\x1b',
+            };
+        }
+        return '\x1b';
+    }
+
     return buf[0];
 }
 
