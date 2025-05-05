@@ -244,8 +244,13 @@ fn editorProcessKeypress() !KeyAction {
             try std.io.getStdOut().writer().writeAll("\x1b[H");
             return .Quit;
         },
-        @intFromEnum(editorKey.PAGE_UP) => .NoOp,
-        @intFromEnum(editorKey.PAGE_DOWN) => .NoOp,
+        @intFromEnum(editorKey.PAGE_UP), @intFromEnum(editorKey.PAGE_DOWN) => {
+            var times = E.screenrows;
+            while (times != 0) : (times -= 1) {
+                editorMoveCursor(if (c == @intFromEnum(editorKey.PAGE_UP)) @intFromEnum(editorKey.ARROW_UP) else @intFromEnum(editorKey.ARROW_DOWN));
+            }
+            return .NoOp;
+        },
         @intFromEnum(editorKey.ARROW_UP), @intFromEnum(editorKey.ARROW_DOWN), @intFromEnum(editorKey.ARROW_LEFT), @intFromEnum(editorKey.ARROW_RIGHT) => {
             editorMoveCursor(c);
             return .NoOp;
