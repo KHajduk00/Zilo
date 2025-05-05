@@ -13,7 +13,14 @@ fn CTRL_KEY(comptime k: u8) u8 {
     return k & 0x1f;
 }
 
-const editorKey = enum(u8) { ARROW_LEFT = 'a', ARROW_RIGHT = 'd', ARROW_UP = 'w', ARROW_DOWN = 's' };
+const editorKey = enum(u16) {
+    ARROW_LEFT = 'a',
+    ARROW_RIGHT = 'd',
+    ARROW_UP = 'w',
+    ARROW_DOWN = 's',
+    PAGE_UP = 0x1000,
+    PAGE_DOWN = 0x1001,
+};
 
 //*** data ***/
 
@@ -97,7 +104,7 @@ fn enableRawMode() !void {
     };
 }
 
-fn editorReadKey() !u8 {
+fn editorReadKey() !u16 {
     var buf: [1]u8 = undefined;
     const stdin = std.io.getStdIn().reader();
 
@@ -106,28 +113,45 @@ fn editorReadKey() !u8 {
         if (n == 1) break;
     }
 
-    // Read escape sequences
+    // Read escape sequence
     if (buf[0] == '\x1b') {
         var seq: [3]u8 = undefined;
 
-        // Read first two characters of sequence
+        // Read first character of sequence
         const seq1 = try stdin.read(seq[0..1]);
-        const seq2 = try stdin.read(seq[1..2]);
-
-        if (seq1 != 1 or seq2 != 1) return '\x1b';
+        if (seq1 != 1) return '\x1b';
 
         if (seq[0] == '[') {
-            return switch (seq[1]) {
-                'A' => @intFromEnum(editorKey.ARROW_UP),
-                'B' => @intFromEnum(editorKey.ARROW_DOWN),
-                'C' => @intFromEnum(editorKey.ARROW_RIGHT),
-                'D' => @intFromEnum(editorKey.ARROW_LEFT),
-                else => '\x1b',
-            };
+            // Read second character
+            const seq2 = try stdin.read(seq[1..2]);
+            if (seq2 != 1) return '\x1b';
+
+            if (seq[1] >= '0' and seq[1] <= '9') {
+                // Read third character for extended sequences
+                const seq3 = try stdin.read(seq[2..3]);
+                if (seq3 != 1) return '\x1b';
+
+                if (seq[2] == '~') {
+                    // Handle Page Up/Down
+                    return switch (seq[1]) {
+                        '5' => @intFromEnum(editorKey.PAGE_UP),
+                        '6' => @intFromEnum(editorKey.PAGE_DOWN),
+                        else => '\x1b',
+                    };
+                }
+            } else {
+                // Handle arrow keys
+                return switch (seq[1]) {
+                    'A' => @intFromEnum(editorKey.ARROW_UP),
+                    'B' => @intFromEnum(editorKey.ARROW_DOWN),
+                    'C' => @intFromEnum(editorKey.ARROW_RIGHT),
+                    'D' => @intFromEnum(editorKey.ARROW_LEFT),
+                    else => '\x1b',
+                };
+            }
         }
         return '\x1b';
     }
-
     return buf[0];
 }
 
@@ -193,7 +217,7 @@ fn editorDrawRows(writer: anytype) !void {
 }
 
 //*** input ***/
-fn editorMoveCursor(key: u8) void {
+fn editorMoveCursor(key: u16) void {
     switch (key) {
         @intFromEnum(editorKey.ARROW_LEFT) => if (E.cx != 0) {
             E.cx -= 1;
@@ -219,14 +243,14 @@ fn editorProcessKeypress() !KeyAction {
             try std.io.getStdOut().writer().writeAll("\x1b[2J");
             try std.io.getStdOut().writer().writeAll("\x1b[H");
             return .Quit;
-        }, // Now we clear the screen on quitting
-
+        },
+        @intFromEnum(editorKey.PAGE_UP) => .NoOp,
+        @intFromEnum(editorKey.PAGE_DOWN) => .NoOp,
         @intFromEnum(editorKey.ARROW_UP), @intFromEnum(editorKey.ARROW_DOWN), @intFromEnum(editorKey.ARROW_LEFT), @intFromEnum(editorKey.ARROW_RIGHT) => {
             editorMoveCursor(c);
             return .NoOp;
         },
-
-        else => .NoOp, // All other keys do nothing (.NoOp = no operation)
+        else => .NoOp,
     };
 }
 
