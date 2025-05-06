@@ -18,8 +18,10 @@ const editorKey = enum(u16) {
     ARROW_RIGHT = 'd',
     ARROW_UP = 'w',
     ARROW_DOWN = 's',
-    PAGE_UP = 0x1000,
-    PAGE_DOWN = 0x1001,
+    HOME_KEY = 0x1000,
+    END_KEY = 0x1001,
+    PAGE_UP = 0x1002,
+    PAGE_DOWN = 0x1003,
 };
 
 //*** data ***/
@@ -132,10 +134,14 @@ fn editorReadKey() !u16 {
                 if (seq3 != 1) return '\x1b';
 
                 if (seq[2] == '~') {
-                    // Handle Page Up/Down
+                    // Handle Page Up/Down and Home/End keys
                     return switch (seq[1]) {
+                        '1' => @intFromEnum(editorKey.HOME_KEY),
+                        '4' => @intFromEnum(editorKey.END_KEY),
                         '5' => @intFromEnum(editorKey.PAGE_UP),
                         '6' => @intFromEnum(editorKey.PAGE_DOWN),
+                        '7' => @intFromEnum(editorKey.HOME_KEY),
+                        '8' => @intFromEnum(editorKey.END_KEY),
                         else => '\x1b',
                     };
                 }
@@ -146,9 +152,20 @@ fn editorReadKey() !u16 {
                     'B' => @intFromEnum(editorKey.ARROW_DOWN),
                     'C' => @intFromEnum(editorKey.ARROW_RIGHT),
                     'D' => @intFromEnum(editorKey.ARROW_LEFT),
+                    'H' => @intFromEnum(editorKey.HOME_KEY),
+                    'F' => @intFromEnum(editorKey.END_KEY),
                     else => '\x1b',
                 };
             }
+        } else if (seq[0] == 'O') {
+            const seq2 = try stdin.read(seq[1..2]);
+            if (seq2 != 1) return '\x1b';
+
+            return switch (seq[1]) {
+                'H' => @intFromEnum(editorKey.HOME_KEY),
+                'F' => @intFromEnum(editorKey.END_KEY),
+                else => '\x1b',
+            };
         }
         return '\x1b';
     }
