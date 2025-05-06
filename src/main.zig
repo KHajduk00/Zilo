@@ -13,16 +13,7 @@ fn CTRL_KEY(comptime k: u8) u8 {
     return k & 0x1f;
 }
 
-const editorKey = enum(u16) {
-    ARROW_LEFT = 'a',
-    ARROW_RIGHT = 'd',
-    ARROW_UP = 'w',
-    ARROW_DOWN = 's',
-    HOME_KEY = 0x1000,
-    END_KEY = 0x1001,
-    PAGE_UP = 0x1002,
-    PAGE_DOWN = 0x1003,
-};
+const editorKey = enum(u16) { ARROW_LEFT = 'a', ARROW_RIGHT = 'd', ARROW_UP = 'w', ARROW_DOWN = 's', HOME_KEY = 0x1000, END_KEY = 0x1001, PAGE_UP = 0x1002, PAGE_DOWN = 0x1003, DEL_KEY = 0x1004 };
 
 //*** data ***/
 
@@ -137,6 +128,7 @@ fn editorReadKey() !u16 {
                     // Handle Page Up/Down and Home/End keys
                     return switch (seq[1]) {
                         '1' => @intFromEnum(editorKey.HOME_KEY),
+                        '3' => @intFromEnum(editorKey.DEL_KEY),
                         '4' => @intFromEnum(editorKey.END_KEY),
                         '5' => @intFromEnum(editorKey.PAGE_UP),
                         '6' => @intFromEnum(editorKey.PAGE_DOWN),
