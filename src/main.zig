@@ -261,6 +261,14 @@ fn editorProcessKeypress() !KeyAction {
             try std.io.getStdOut().writer().writeAll("\x1b[H");
             return .Quit;
         },
+        @intFromEnum(editorKey.HOME_KEY) => {
+            E.cx = 0;
+            return .NoOp;
+        },
+        @intFromEnum(editorKey.END_KEY) => {
+            E.cx = E.screencols - 1;
+            return .NoOp;
+        },
         @intFromEnum(editorKey.PAGE_UP), @intFromEnum(editorKey.PAGE_DOWN) => {
             var times = E.screenrows;
             while (times != 0) : (times -= 1) {
