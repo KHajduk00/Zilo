@@ -8,7 +8,6 @@ const heap = @import("std").heap;
 const mem = @import("std").mem;
 
 //*** defines ***//
-// Function to handle Ctrl key combinations
 fn CTRL_KEY(comptime k: u8) u8 {
     return k & 0x1f;
 }
@@ -16,8 +15,12 @@ fn CTRL_KEY(comptime k: u8) u8 {
 const editorKey = enum(u16) { ARROW_LEFT = 'a', ARROW_RIGHT = 'd', ARROW_UP = 'w', ARROW_DOWN = 's', HOME_KEY = 0x1000, END_KEY = 0x1001, PAGE_UP = 0x1002, PAGE_DOWN = 0x1003, DEL_KEY = 0x1004 };
 
 //*** data ***/
-
 const zilo_version = "0.0.1";
+
+const Erow = struct {
+    size: usize,
+    chars: [*]u8,
+};
 
 const EditorConfig = struct {
     cx: c_int,
@@ -25,6 +28,10 @@ const EditorConfig = struct {
 
     screenrows: u16,
     screencols: u16,
+
+    numrows: u16,
+    row: Erow,
+
     orig_termios: std.posix.termios,
 };
 
@@ -34,6 +41,10 @@ var E = EditorConfig{
 
     .screenrows = undefined,
     .screencols = undefined,
+
+    .numrows = 0,
+    .row = .{ .size = 0, .chars = undefined },
+
     .orig_termios = undefined,
 };
 
@@ -44,7 +55,6 @@ const KeyAction = enum {
 
 //*** terminal ***/
 // Function to restore the original terminal settings
-// Will print error and exit if restoration fails
 export fn disableRawMode() void {
     std.posix.tcsetattr(std.io.getStdIn().handle, .FLUSH, E.orig_termios) catch {
         std.debug.print("Error: Failed to restore terminal settings\n", .{});
@@ -61,7 +71,6 @@ fn die(msg: []const u8) noreturn {
 }
 
 // Function to enable raw mode in the terminal
-// Returns an error if terminal settings cannot be configured
 fn enableRawMode() !void {
     const stdin = std.io.getStdIn().handle;
 
@@ -200,24 +209,19 @@ fn editorDrawRows(writer: anytype) !void {
             var welcome: [80]u8 = undefined;
             const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
 
-            // Handle message that might be too wide
             const display_len = @min(welcome_msg.len, E.screencols);
             const padding = (E.screencols - display_len) / 2;
 
-            // Add left padding with space
             var i: usize = 0;
             while (i < padding) : (i += 1) {
                 try writer.writeAll(" ");
             }
 
-            // Print the message
             try writer.writeAll(welcome_msg[0..display_len]);
         } else {
-            // For other lines, just print a single '~' at the start
             try writer.writeAll("~");
         }
 
-        // Clear to end of line and add newline (except last line)
         try writer.writeAll("\x1b[K");
         if (y < E.screenrows - 1) {
             try writer.writeAll("\r\n");
@@ -280,6 +284,7 @@ fn editorProcessKeypress() !KeyAction {
 fn initEditor() void {
     E.cx = 0;
     E.cy = 0;
+    E.numrows = 0;
 
     if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
         die("getWindowSize");
@@ -287,7 +292,6 @@ fn initEditor() void {
 }
 
 pub fn main() anyerror!void {
-    // Set up an arena allocator
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
