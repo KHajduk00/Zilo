@@ -1,9 +1,5 @@
 //*** includes ***/
 const std = @import("std");
-const clib = @cImport({
-    @cInclude("sys/ioctl.h");
-    @cInclude("unistd.h");
-});
 const heap = @import("std").heap;
 const mem = @import("std").mem;
 
@@ -173,16 +169,16 @@ fn editorReadKey() !u16 {
     return buf[0];
 }
 
-fn getWindowSize(rows: *u16, cols: *u16) c_int {
-    var ws: clib.winsize = undefined;
+fn getWindowSize(rows: *u16, cols: *u16) !void {
+    var ws: std.posix.winsize = undefined;
+    const fd = std.posix.STDOUT_FILENO;
 
-    if (clib.ioctl(clib.STDOUT_FILENO, clib.TIOCGWINSZ, &ws) == -1 or ws.ws_col == 0) {
-        return -1;
-    } else {
-        cols.* = ws.ws_col;
-        rows.* = ws.ws_row;
-        return 0;
+    if (std.posix.system.ioctl(fd, std.posix.T.IOCGWINSZ, @intFromPtr(&ws)) == -1 or ws.col == 0) {
+        return error.TerminalSizeError;
     }
+
+    rows.* = ws.row;
+    cols.* = ws.col;
 }
 
 //*** output ***/
@@ -286,9 +282,11 @@ fn initEditor() void {
     E.cy = 0;
     E.numrows = 0;
 
-    if (getWindowSize(&E.screenrows, &E.screencols) == -1) {
-        die("getWindowSize");
-    }
+    getWindowSize(&E.screenrows, &E.screencols) catch {
+        // Fallback values if we can't get terminal size for some reason
+        E.screenrows = 24;
+        E.screencols = 80;
+    };
 }
 
 pub fn main() anyerror!void {
