@@ -215,22 +215,26 @@ fn editorRefreshScreen(allocator: mem.Allocator) !void {
 fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
-        if (y == E.screenrows / 3) {
-            // Create welcome message
-            var welcome: [80]u8 = undefined;
-            const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
+        if (y >= E.numrows) {
+            if (y == E.screenrows / 3) {
+                var welcome: [80]u8 = undefined;
+                const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
 
-            const display_len = @min(welcome_msg.len, E.screencols);
-            const padding = (E.screencols - display_len) / 2;
+                const display_len = @min(welcome_msg.len, E.screencols);
+                const padding = (E.screencols - display_len) / 2;
 
-            var i: usize = 0;
-            while (i < padding) : (i += 1) {
-                try writer.writeAll(" ");
+                var i: usize = 0;
+                while (i < padding) : (i += 1) {
+                    try writer.writeAll(" ");
+                }
+
+                try writer.writeAll(welcome_msg[0..display_len]);
+            } else {
+                try writer.writeAll("~");
             }
-
-            try writer.writeAll(welcome_msg[0..display_len]);
         } else {
-            try writer.writeAll("~");
+            const display_len = @min(E.row.size, E.screencols);
+            try writer.writeAll(E.row.chars[0..display_len]);
         }
 
         try writer.writeAll("\x1b[K");
