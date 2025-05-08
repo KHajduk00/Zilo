@@ -15,7 +15,7 @@ const zilo_version = "0.0.1";
 
 const Erow = struct {
     size: usize,
-    chars: [*]u8,
+    chars: []u8,
 };
 
 const EditorConfig = struct {
@@ -181,6 +181,21 @@ fn getWindowSize(rows: *u16, cols: *u16) !void {
     cols.* = ws.col;
 }
 
+//*** file i/o ***/
+fn editorOpen() !void {
+    const line = "Hello, world!";
+    const line_len = line.len;
+
+    E.row.chars = try std.heap.page_allocator.alloc(u8, line_len + 1);
+    E.row.size = line_len;
+
+    @memcpy(E.row.chars[0..line_len], line);
+
+    E.row.chars[line_len] = 0;
+
+    E.numrows = 1;
+}
+
 //*** output ***/
 fn editorRefreshScreen(allocator: mem.Allocator) !void {
     var buf = std.ArrayList(u8).init(allocator);
@@ -297,6 +312,7 @@ pub fn main() anyerror!void {
     try enableRawMode();
     defer disableRawMode();
     initEditor();
+    try editorOpen();
 
     while (true) {
         try editorRefreshScreen(allocator);
