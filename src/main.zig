@@ -233,7 +233,7 @@ fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
         if (y >= E.numrows) {
-            if (y == E.screenrows / 3) {
+            if (E.numrows == 0 and y == E.screenrows / 3) {
                 var welcome: [80]u8 = undefined;
                 const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
 
