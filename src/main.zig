@@ -2,6 +2,7 @@
 const std = @import("std");
 const heap = @import("std").heap;
 const mem = @import("std").mem;
+const fs = @import("std").fs;
 
 //*** defines ***//
 fn CTRL_KEY(comptime k: u8) u8 {
@@ -182,16 +183,32 @@ fn getWindowSize(rows: *u16, cols: *u16) !void {
 }
 
 //*** file i/o ***/
-fn editorOpen() !void {
-    const line = "Hello, world!";
-    const line_len = line.len;
+fn editorOpen(filename: []const u8) !void {
+    const file = try fs.cwd().openFile(filename, .{ .mode = .read_only });
+    defer file.close();
 
-    E.row.chars = try std.heap.page_allocator.alloc(u8, line_len + 1);
-    E.row.size = line_len;
+    const file_size = try file.getEndPos();
+    const file_contents = try heap.page_allocator.alloc(u8, file_size);
+    defer heap.page_allocator.free(file_contents);
 
-    @memcpy(E.row.chars[0..line_len], line);
+    const bytes_read = try file.readAll(file_contents);
+    if (bytes_read != file_size) {
+        return error.FileReadError;
+    }
 
-    E.row.chars[line_len] = 0;
+    // Find the first line (up to newline or end of file)
+    var line_end: usize = 0;
+    while (line_end < file_size and file_contents[line_end] != '\n' and file_contents[line_end] != '\r') {
+        line_end += 1;
+    }
+
+    // Allocate memory for the line
+    E.row.chars = try heap.page_allocator.alloc(u8, line_end + 1);
+    E.row.size = line_end;
+
+    // Copy the line content
+    @memcpy(E.row.chars[0..line_end], file_contents[0..line_end]);
+    E.row.chars[line_end] = 0;
 
     E.numrows = 1;
 }
@@ -316,7 +333,14 @@ pub fn main() anyerror!void {
     try enableRawMode();
     defer disableRawMode();
     initEditor();
-    try editorOpen();
+
+    // Check for command line arguments
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
+
+    if (args.len > 1) {
+        try editorOpen(args[1]);
+    }
 
     while (true) {
         try editorRefreshScreen(allocator);
