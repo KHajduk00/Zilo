@@ -22,6 +22,7 @@ const Erow = struct {
 const EditorConfig = struct {
     cx: c_int,
     cy: c_int,
+    rowoff: u16,
 
     screenrows: u16,
     screencols: u16,
@@ -35,6 +36,7 @@ const EditorConfig = struct {
 var E = EditorConfig{
     .cx = undefined,
     .cy = undefined,
+    .rowoff = undefined,
 
     .screenrows = undefined,
     .screencols = undefined,
@@ -329,6 +331,7 @@ fn editorProcessKeypress() !KeyAction {
 fn initEditor() void {
     E.cx = 0;
     E.cy = 0;
+    E.rowoff = 0;
     E.numrows = 0;
     E.rows = &[0]Erow{};
 
