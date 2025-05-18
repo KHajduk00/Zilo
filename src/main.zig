@@ -27,7 +27,7 @@ const EditorConfig = struct {
     screencols: u16,
 
     numrows: u16,
-    row: Erow,
+    rows: []Erow,
 
     orig_termios: std.posix.termios,
 };
@@ -40,7 +40,7 @@ var E = EditorConfig{
     .screencols = undefined,
 
     .numrows = 0,
-    .row = .{ .size = 0, .chars = undefined },
+    .rows = undefined,
 
     .orig_termios = undefined,
 };
@@ -182,8 +182,22 @@ fn getWindowSize(rows: *u16, cols: *u16) !void {
     cols.* = ws.col;
 }
 
+fn editorAppendRow(allocator: mem.Allocator, s: []const u8) !void {
+    const at = E.numrows;
+    E.rows = try allocator.realloc(E.rows, E.numrows + 1);
+
+    E.rows[at] = .{
+        .size = s.len,
+        .chars = try allocator.alloc(u8, s.len + 1),
+    };
+
+    @memcpy(E.rows[at].chars[0..s.len], s);
+    E.rows[at].chars[s.len] = 0;
+    E.numrows += 1;
+}
+
 //*** file i/o ***/
-fn editorOpen(filename: []const u8) !void {
+fn editorOpen(allocator: mem.Allocator, filename: []const u8) !void {
     const file = try fs.cwd().openFile(filename, .{ .mode = .read_only });
     defer file.close();
 
@@ -191,26 +205,25 @@ fn editorOpen(filename: []const u8) !void {
     const file_contents = try heap.page_allocator.alloc(u8, file_size);
     defer heap.page_allocator.free(file_contents);
 
-    const bytes_read = try file.readAll(file_contents);
-    if (bytes_read != file_size) {
-        return error.FileReadError;
-    }
+    _ = try file.readAll(file_contents);
 
-    // Find the first line (up to newline or end of file)
+    var line_start: usize = 0;
     var line_end: usize = 0;
-    while (line_end < file_size and file_contents[line_end] != '\n' and file_contents[line_end] != '\r') {
-        line_end += 1;
+
+    while (line_end < file_size) {
+        while (line_end < file_size and
+            file_contents[line_end] != '\n' and
+            file_contents[line_end] != '\r')
+        {
+            line_end += 1;
+        }
+
+        try editorAppendRow(allocator, file_contents[line_start..line_end]);
+
+        if (line_end < file_size and file_contents[line_end] == '\r') line_end += 1;
+        if (line_end < file_size and file_contents[line_end] == '\n') line_end += 1;
+        line_start = line_end;
     }
-
-    // Allocate memory for the line
-    E.row.chars = try heap.page_allocator.alloc(u8, line_end + 1);
-    E.row.size = line_end;
-
-    // Copy the line content
-    @memcpy(E.row.chars[0..line_end], file_contents[0..line_end]);
-    E.row.chars[line_end] = 0;
-
-    E.numrows = 1;
 }
 
 //*** output ***/
@@ -250,8 +263,8 @@ fn editorDrawRows(writer: anytype) !void {
                 try writer.writeAll("~");
             }
         } else {
-            const display_len = @min(E.row.size, E.screencols);
-            try writer.writeAll(E.row.chars[0..display_len]);
+            const display_len = @min(E.rows[y].size, E.screencols);
+            try writer.writeAll(E.rows[y].chars[0..display_len]);
         }
 
         try writer.writeAll("\x1b[K");
@@ -317,6 +330,7 @@ fn initEditor() void {
     E.cx = 0;
     E.cy = 0;
     E.numrows = 0;
+    E.rows = &[0]Erow{};
 
     getWindowSize(&E.screenrows, &E.screencols) catch {
         // Fallback values if we can't get terminal size for some reason
@@ -334,12 +348,11 @@ pub fn main() anyerror!void {
     defer disableRawMode();
     initEditor();
 
-    // Check for command line arguments
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
     if (args.len > 1) {
-        try editorOpen(args[1]);
+        try editorOpen(allocator, args[1]);
     }
 
     while (true) {
