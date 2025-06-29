@@ -20,8 +20,8 @@ const Erow = struct {
 };
 
 const EditorConfig = struct {
-    cx: c_int,
-    cy: c_int,
+    cx: u16,
+    cy: u16,
     rowoff: u16,
 
     screenrows: u16,
@@ -229,7 +229,19 @@ fn editorOpen(allocator: mem.Allocator, filename: []const u8) !void {
 }
 
 //*** output ***/
+
+fn editorScroll() !void {
+    if (E.cy < E.rowoff) {
+        E.rowoff = E.cy;
+    }
+    if (E.cy >= E.rowoff + E.screenrows) {
+        E.rowoff = E.cy - E.screenrows + 1;
+    }
+}
+
 fn editorRefreshScreen(allocator: mem.Allocator) !void {
+    try editorScroll();
+
     var buf = std.ArrayList(u8).init(allocator);
     defer buf.deinit();
     var writer = buf.writer();
