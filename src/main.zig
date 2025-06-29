@@ -247,7 +247,8 @@ fn editorRefreshScreen(allocator: mem.Allocator) !void {
 fn editorDrawRows(writer: anytype) !void {
     var y: usize = 0;
     while (y < E.screenrows) : (y += 1) {
-        if (y >= E.numrows) {
+        const filerow = y + E.rowoff;
+        if (filerow >= E.numrows) {
             if (E.numrows == 0 and y == E.screenrows / 3) {
                 var welcome: [80]u8 = undefined;
                 const welcome_msg = try std.fmt.bufPrint(&welcome, "Zilo editor -- version {s}", .{zilo_version});
@@ -265,8 +266,8 @@ fn editorDrawRows(writer: anytype) !void {
                 try writer.writeAll("~");
             }
         } else {
-            const display_len = @min(E.rows[y].size, E.screencols);
-            try writer.writeAll(E.rows[y].chars[0..display_len]);
+            const display_len = @min(E.rows[filerow].size, E.screencols);
+            try writer.writeAll(E.rows[filerow].chars[0..display_len]);
         }
 
         try writer.writeAll("\x1b[K");
