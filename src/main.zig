@@ -280,8 +280,15 @@ fn editorDrawRows(writer: anytype) !void {
                 try writer.writeAll("~");
             }
         } else {
-            const display_len = @min(E.rows[filerow].size, E.screencols);
-            try writer.writeAll(E.rows[filerow].chars[0..display_len]);
+            const row = E.rows[filerow];
+            if (E.coloff >= row.size) {
+                try writer.writeAll("");
+            } else {
+                const start = E.coloff;
+                var len = row.size - start;
+                if (len > E.screencols) len = E.screencols;
+                try writer.writeAll(row.chars[start .. start + len]);
+            }
         }
 
         try writer.writeAll("\x1b[K");
