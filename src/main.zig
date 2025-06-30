@@ -23,6 +23,7 @@ const EditorConfig = struct {
     cx: u16,
     cy: u16,
     rowoff: u16,
+    coloff: u16,
 
     screenrows: u16,
     screencols: u16,
@@ -37,6 +38,7 @@ var E = EditorConfig{
     .cx = undefined,
     .cy = undefined,
     .rowoff = undefined,
+    .coloff = undefined,
 
     .screenrows = undefined,
     .screencols = undefined,
@@ -345,6 +347,7 @@ fn initEditor() void {
     E.cx = 0;
     E.cy = 0;
     E.rowoff = 0;
+    E.coloff = 0;
     E.numrows = 0;
     E.rows = &[0]Erow{};
 
