@@ -250,7 +250,7 @@ fn editorRefreshScreen(allocator: mem.Allocator) !void {
     try writer.writeAll("\x1b[H");
 
     try editorDrawRows(writer);
-    try writer.print("\x1b[{d};{d}H", .{ E.cy + 1, E.cx + 1 });
+    try writer.print("\x1b[{d};{d}H", .{ (E.cy - E.rowoff) + 1, E.cx + 1 });
 
     try writer.writeAll("\x1b[?25h");
     try std.io.getStdOut().writer().writeAll(buf.items);
