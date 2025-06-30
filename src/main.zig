@@ -301,7 +301,7 @@ fn editorMoveCursor(key: u16) void {
         @intFromEnum(editorKey.ARROW_UP) => if (E.cy != 0) {
             E.cy -= 1;
         },
-        @intFromEnum(editorKey.ARROW_DOWN) => if (E.cy != E.screenrows - 1) {
+        @intFromEnum(editorKey.ARROW_DOWN) => if (E.cy < E.numrows - 1) {
             E.cy += 1;
         },
         else => {},
