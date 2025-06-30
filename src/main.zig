@@ -306,12 +306,18 @@ fn editorDrawRows(writer: anytype) !void {
 
 //*** input ***/
 fn editorMoveCursor(key: u16) void {
+    const row: ?*Erow = if (E.cy < E.numrows) &E.rows[E.cy] else null;
+
     switch (key) {
         @intFromEnum(editorKey.ARROW_LEFT) => if (E.cx != 0) {
             E.cx -= 1;
         },
         @intFromEnum(editorKey.ARROW_RIGHT) => {
-            E.cx += 1;
+            if (row) |r| {
+                if (E.cx < r.size) {
+                    E.cx += 1;
+                }
+            }
         },
         @intFromEnum(editorKey.ARROW_UP) => if (E.cy != 0) {
             E.cy -= 1;
