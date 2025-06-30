@@ -311,6 +311,10 @@ fn editorMoveCursor(key: u16) void {
     switch (key) {
         @intFromEnum(editorKey.ARROW_LEFT) => if (E.cx != 0) {
             E.cx -= 1;
+        } else if (E.cy > 0) {
+            E.cy -= 1;
+            const prev_row = &E.rows[E.cy];
+            E.cx = @as(u16, @min(prev_row.size, std.math.maxInt(u16)));
         },
         @intFromEnum(editorKey.ARROW_RIGHT) => {
             if (row) |r| {
