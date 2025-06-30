@@ -306,7 +306,7 @@ fn editorDrawRows(writer: anytype) !void {
 
 //*** input ***/
 fn editorMoveCursor(key: u16) void {
-    const row: ?*Erow = if (E.cy < E.numrows) &E.rows[E.cy] else null;
+    var row: ?*Erow = if (E.cy < E.numrows) &E.rows[E.cy] else null;
 
     switch (key) {
         @intFromEnum(editorKey.ARROW_LEFT) => if (E.cx != 0) {
@@ -326,6 +326,12 @@ fn editorMoveCursor(key: u16) void {
             E.cy += 1;
         },
         else => {},
+    }
+
+    row = if (E.cy < E.numrows) &E.rows[E.cy] else null;
+    const rowlen = if (row) |r| r.size else 0;
+    if (E.cx > rowlen) {
+        E.cx = @as(u16, @min(rowlen, std.math.maxInt(u16)));
     }
 }
 
